@@ -305,7 +305,10 @@ class feature_parser(object):
             strand = sline[STRAND]
             phase = '.'
             attributes = base_attributes.copy()
-            attributes['ID'] = sline[FEATURE_NAME]+'-T-E'+str(i+1)
+            if (strand == '+'):
+                attributes['ID'] = sline[FEATURE_NAME]+'-T-E'+str(i+1)
+            elif (strand == '-'):
+                attributes['ID'] = sline[FEATURE_NAME]+'-T-E'+str(sline[EXON_COUNT]-i)
             attributes['Parent'] = sline[FEATURE_NAME]+'-T'
             
             self.features.append((seqid, source, type, start, end, score, strand, phase, self._join_attributes(attributes)))
@@ -382,30 +385,42 @@ class feature_parser(object):
                 #     
                 #     self.features.append((seqid, source, type, start, end, score, strand, phase, self._join_attributes(attributes)))
             
-            # Add 5' UTR
+            # Add upstream 5'(+)/3'(-) UTR
             if (sline[TXN_START] < s_cds_start):
-                type = 'five_prime_UTR'
+                strand = sline[STRAND]
                 start = sline[TXN_START]
                 end = s_cds_start-1
-                score = '.'
-                strand = sline[STRAND]
-                phase = '.'
                 attributes = base_attributes.copy()
-                attributes['ID'] = sline[FEATURE_NAME]+'-5'
+                if (strand == '+'):
+                    type = 'five_prime_UTR'
+                    #end = s_cds_start-1
+                    attributes['ID'] = sline[FEATURE_NAME]+'-5'
+                elif (strand == '-'):
+                    type = 'three_prime_UTR'
+                    #end = s_cds_start+1
+                    attributes['ID'] = sline[FEATURE_NAME]+'-3'
+                score = '.'
+                phase = '.'
                 attributes['Parent'] = sline[FEATURE_NAME]+'-T'
                 
                 self.features.append((seqid, source, type, start, end, score, strand, phase, self._join_attributes(attributes)))
             
-            # Add 3' UTR
+            # Add downstream 3'(+)/5'(-) UTR
             if (s_cds_end < sline[TXN_END]):
-                type = 'three_prime_UTR'
+                strand = sline[STRAND]
                 start = s_cds_end+1
                 end = sline[TXN_END]
-                score = '.'
-                strand = sline[STRAND]
-                phase = '.'
                 attributes = base_attributes.copy()
-                attributes['ID'] = sline[FEATURE_NAME]+'-3'
+                if (strand == '+'):
+                    type = 'three_prime_UTR'
+                    #start = s_cds_end+1
+                    attributes['ID'] = sline[FEATURE_NAME]+'-3'
+                elif (strand == '-'):
+                    type = 'five_prime_UTR'
+                    #start = s_cds_end-1
+                    attributes['ID'] = sline[FEATURE_NAME]+'-5'
+                score = '.'
+                phase = '.'
                 attributes['Parent'] = sline[FEATURE_NAME]+'-T'
                 
                 self.features.append((seqid, source, type, start, end, score, strand, phase, self._join_attributes(attributes)))
@@ -447,6 +462,7 @@ class feature_parser(object):
         }
         for i in range(33):
             table[chr(i)] = '%' + hex(i)[2:].zfill(2)
+        #table[chr(0)] = '%20'
         
         return ''.join(table.get(c,c) for c in text)
     
@@ -471,6 +487,15 @@ def main():
                 f = feature_parser(line, sys.argv[2]) # 'mochiview2gff-Tuch-et-al-2010'
                 print(f)
             line_count += 1
+    
+    # Force encoding
+    # with open('temp.new', 'w', encoding="ascii") as out:
+    #     with open(sys.argv[1], 'r') as flo:
+    #         for line in flo:
+    #             if (line_count > 0):
+    #                 f = feature_parser(line, sys.argv[2]) # 'mochiview2gff-Tuch-et-al-2010'
+    #                 print(str(f), file=out)
+    #             line_count += 1
 
 if (__name__ == "__main__"):
     main()
